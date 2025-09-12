@@ -1,7 +1,8 @@
 //! Hash functions used in the SLH-DSA signature scheme
 //!
-//! Each parameter set defines several functions derived from the core hash function (SHA2 or SHAKE)
+//! Each parameter set defines several functions derived from the core hash function (SHA2, SHAKE, or BLAKE3)
 //! A `HashSuite` contains all of these functions, defined in FIPS-205 section 10
+mod blake3;
 mod sha2;
 mod shake;
 
@@ -9,6 +10,7 @@ use core::fmt::Debug;
 
 use hybrid_array::{Array, ArraySize};
 
+pub use blake3::*;
 pub use sha2::*;
 pub use shake::*;
 

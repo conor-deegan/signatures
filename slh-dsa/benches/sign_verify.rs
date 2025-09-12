@@ -1,6 +1,7 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use signature::{Keypair, Signer, Verifier};
 use slh_dsa::*;
+use std::time::Duration;
 
 pub fn sign_benchmark<P: ParameterSet>(c: &mut Criterion) {
     let mut rng = rand::rng();
@@ -28,20 +29,36 @@ pub fn verify_benchmark<P: ParameterSet>(c: &mut Criterion) {
     });
 }
 
-criterion_group!(name = sign_benches;
+// SHAKE benchmarks
+criterion_group!(name = shake_sign_benches;
     config = Criterion::default().sample_size(10);
     targets = sign_benchmark<Shake128s>, sign_benchmark<Shake192s>, sign_benchmark<Shake256s>,
               sign_benchmark<Shake128f>, sign_benchmark<Shake192f>, sign_benchmark<Shake256f>,
-              sign_benchmark<Sha2_128s>, sign_benchmark<Sha2_192s>, sign_benchmark<Sha2_256s>,
-              sign_benchmark<Sha2_128f>, sign_benchmark<Sha2_192f>, sign_benchmark<Sha2_256f>,
 );
 
-criterion_group!(name = verify_benches;
+criterion_group!(name = shake_verify_benches;
     config = Criterion::default().sample_size(10);
     targets = verify_benchmark<Shake128s>, verify_benchmark<Shake192s>, verify_benchmark<Shake256s>,
               verify_benchmark<Shake128f>, verify_benchmark<Shake192f>, verify_benchmark<Shake256f>,
-              verify_benchmark<Sha2_128s>, verify_benchmark<Sha2_192s>, verify_benchmark<Sha2_256s>,
+);
+
+// SHA2 benchmarks
+criterion_group!(name = sha2_sign_benches;
+    config = Criterion::default().sample_size(10);
+    targets = sign_benchmark<Sha2_128s>, sign_benchmark<Sha2_192s>, sign_benchmark<Sha2_256s>,
+              sign_benchmark<Sha2_128f>, sign_benchmark<Sha2_192f>, sign_benchmark<Sha2_256f>,
+);
+
+criterion_group!(name = sha2_verify_benches;
+    config = Criterion::default().sample_size(10);
+    targets = verify_benchmark<Sha2_128s>, verify_benchmark<Sha2_192s>, verify_benchmark<Sha2_256s>,
               verify_benchmark<Sha2_128f>, verify_benchmark<Sha2_192f>, verify_benchmark<Sha2_256f>,
 );
 
-criterion_main!(sign_benches, verify_benches);
+// Quick test benchmark
+criterion_group!(name = quick_bench;
+    config = Criterion::default().sample_size(3).measurement_time(std::time::Duration::from_secs(1));
+    targets = sign_benchmark<Blake3_128s>,
+);
+
+criterion_main!(quick_bench);
