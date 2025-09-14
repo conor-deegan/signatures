@@ -1,19 +1,4 @@
 // CD: Added crypto_blake3 module
-/*
-CD: Description
-This module is a wrapper around the BLAKE3 hash function.
-
-The wrapper provides a XOF interface over BLAKE3, managing the state 
-transition between absorption and squeezing phases.
-
-This ensures consistent behavior with SHAKE while maintaining the
-proper usage pattern for finalizing the absorption phase before beginning extraction.
-
-The wrapper enforces this at the type level through the
-enum states (Absorbing/Squeezing) and provides a common API for the
-variable-length output functionality as per ML-DSA's key 
-generation and signing operations.
-*/
 use hybrid_array::Array;
 use crate::module_lattice::encode::ArraySize;
 use blake3::{Hasher, OutputReader};

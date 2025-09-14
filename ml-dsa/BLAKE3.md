@@ -10,19 +10,29 @@ CD: Description of the change
 
 I am using a feature flag to compare different hash functions.
 
+## Added `crypto_blake3.rs` module
+
+This module is a wrapper around the BLAKE3 hash function which exposes a similar interface to the SHAKE hash function.
+
+To test the module:
+
+```bash
+cargo test --lib crypto_blake3
+```
+
 ## Key Gen
 
 ### Single Keypair
 
 To generate a single keypair and see the timing with SHAKE:
 
-```
+```bash
 cargo test --test key_gen_analysis --features shake -- --nocapture
 ```
 
 To generate a single keypair and see the timing with BLAKE3:
 
-```
+```bash
 cargo test --test key_gen_analysis --features blake3 -- --nocapture
 ```
 
@@ -30,12 +40,12 @@ cargo test --test key_gen_analysis --features blake3 -- --nocapture
 
 To benchmark the key generation with SHAKE:
 
-```
+```bash
 cargo bench --bench hash_comparison
 ```
 
 To benchmark the key generation with BLAKE3:
 
-```
+```bash
 cargo bench --bench hash_comparison --features blake3 
 ```
