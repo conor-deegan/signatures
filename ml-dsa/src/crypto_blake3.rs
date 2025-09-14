@@ -1,56 +1,65 @@
+// CD: Added crypto_blake3 module
+/*
+CD: Description
+This module is a wrapper around the BLAKE3 hash function.
+
+The wrapper provides a XOF interface over BLAKE3, managing the state 
+transition between absorption and squeezing phases.
+
+This ensures consistent behavior with SHAKE while maintaining the
+proper usage pattern for finalizing the absorption phase before beginning extraction.
+
+The wrapper enforces this at the type level through the
+enum states (Absorbing/Squeezing) and provides a common API for the
+variable-length output functionality as per ML-DSA's key 
+generation and signing operations.
+*/
 use hybrid_array::Array;
-use sha3::{
-    Shake128, Shake256,
-    digest::{ExtendableOutput, XofReader},
-};
+use crate::module_lattice::encode::ArraySize;
+use blake3::{Hasher, OutputReader};
 use std::sync::Once;
 
-use crate::module_lattice::encode::ArraySize;
-
+#[allow(dead_code)]
 static PRINT_ONCE: Once = Once::new();
 
-// CD: Added Debug to allow for logging
 #[derive(Debug)]
-pub enum ShakeState<Shake: ExtendableOutput> {
-    Absorbing(Shake),
-    Squeezing(Shake::Reader),
+pub enum Blake3State {
+    Absorbing(Hasher),
+    Squeezing(OutputReader),
 }
 
-impl<Shake: ExtendableOutput + Default> Default for ShakeState<Shake> {
+impl Default for Blake3State {
     fn default() -> Self {
-        // CD: Added println to confirm the hash function is being used
         PRINT_ONCE.call_once(|| {
-            println!("\n ⍆ Using SHAKE hash function\n");
+            println!("\n ⍆ Using BLAKE3 hash function\n");
         });
-        Self::Absorbing(Shake::default())
+        Self::Absorbing(Hasher::new())
     }
 }
 
-impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
+impl Blake3State {
     #[allow(dead_code)] // removing compiler warnings given feature flags
     pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
-            Self::Absorbing(sponge) => sponge.update(input),
+            Self::Absorbing(hasher) => {
+                hasher.update(input);
+            }
             Self::Squeezing(_) => unreachable!(),
         }
-
         self
     }
 
-    #[allow(dead_code)] // removing compiler warnings given feature flags
     pub fn squeeze(&mut self, output: &mut [u8]) -> &mut Self {
         match self {
-            Self::Absorbing(sponge) => {
-                // Clone required to satisfy borrow checker
-                let mut reader = sponge.clone().finalize_xof();
-                reader.read(output);
+            Self::Absorbing(hasher) => {
+                let mut reader = hasher.clone().finalize_xof();
+                reader.fill(output);
                 *self = Self::Squeezing(reader);
             }
             Self::Squeezing(reader) => {
-                reader.read(output.as_mut());
+                reader.fill(output);
             }
         }
-
         self
     }
 
@@ -63,9 +72,9 @@ impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
 }
 
 #[allow(dead_code)] // removing compiler warnings given feature flags
-pub type G = ShakeState<Shake128>;
+pub type G = Blake3State;
 #[allow(dead_code)] // removing compiler warnings given feature flags
-pub type H = ShakeState<Shake256>;
+pub type H = Blake3State;
 
 #[cfg(test)]
 mod test {
@@ -76,8 +85,8 @@ mod test {
     #[test]
     fn g() {
         let input = b"hello world";
-        let expected1 = hex!("3a9159f071e4dd1c8c4f968607c30942e120d8156b8b1e72e0d376e8871cb8b8");
-        let expected2 = hex!("99072665674f26cc494a4bcf027c58267e8ee2da60e942759de86d2670bba1aa");
+        let expected1 = hex!("d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24");
+        let expected2 = hex!("a020ed55aed9a6ab2eaf3fd70d2c98c949e142d8f42a10250190b699e02cf9eb");
 
         let mut g = G::default().absorb(input);
 
@@ -92,8 +101,8 @@ mod test {
     #[test]
     fn h() {
         let input = b"hello world";
-        let expected1 = hex!("369771bb2cb9d2b04c1d54cca487e372d9f187f73f7ba3f65b95c8ee7798c527");
-        let expected2 = hex!("f4f3c2d55c2d46a29f2e945d469c3df27853a8735271f5cc2d9e889544357116");
+        let expected1 = hex!("d74981efa70a0c880b8d8c1985d075dbcbf679b99a5f9914e5aaf96b831a9e24");
+        let expected2 = hex!("a020ed55aed9a6ab2eaf3fd70d2c98c949e142d8f42a10250190b699e02cf9eb");
 
         let mut h = H::default().absorb(input);
 

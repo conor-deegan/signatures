@@ -1,4 +1,5 @@
-#![no_std]
+// CD: Removed no_std to allow for logging
+// #![no_std]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
@@ -33,6 +34,8 @@
 
 mod algebra;
 mod crypto;
+// CD: Added crypto_blake3 module
+mod crypto_blake3;
 mod encode;
 mod hint;
 mod ntt;
@@ -79,7 +82,11 @@ use pkcs8::{
 };
 
 use crate::algebra::{AlgebraExt, Elem, NttMatrix, NttVector, Truncate, Vector};
+// CD: Added feature flag to allow for different hash functions
+#[cfg(all(feature = "hash-shake", not(feature = "hash-blake3")))]
 use crate::crypto::H;
+#[cfg(feature = "hash-blake3")]
+use crate::crypto_blake3::H;
 use crate::hint::Hint;
 use crate::ntt::{Ntt, NttInverse};
 use crate::param::{ParameterSet, QMinus1, SamplingSize, SpecQ};

@@ -25,7 +25,14 @@ exclude = [
 ]
 
 [features]
-default = ["rand_core", "alloc", "pkcs8"]
+default = ["shake"]
+# Hash function selection
+hash-shake = []  # Use SHAKE hash function
+hash-blake3 = []  # Use BLAKE3 hash function
+# Helper bundles
+shake = ["rand_core", "alloc", "pkcs8", "hash-shake"]
+blake3 = ["rand_core", "alloc", "pkcs8", "hash-blake3"]
+# Other features
 zeroize = ["dep:zeroize", "hybrid-array/zeroize"]
 rand_core = ["dep:rand_core", "signature/rand_core"]
 alloc = ["pkcs8?/alloc"]
@@ -41,6 +48,7 @@ zeroize = { version = "1.8.1", optional = true, default-features = false }
 
 const-oid = { version = "0.10", features = ["db"], optional = true }
 pkcs8 = { version = "0.11.0-rc.6", default-features = false, optional = true }
+blake3 = "1.8.2"
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -54,4 +62,8 @@ serde_json = "1.0.132"
 
 [[bench]]
 name = "ml_dsa"
+harness = false
+
+[[bench]]
+name = "hash_comparison"
 harness = false
