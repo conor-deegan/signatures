@@ -1,6 +1,6 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 use hybrid_array::{Array, ArraySize};
-use ml_dsa::{B32, KeyGen, MlDsa65, Signature, SigningKey, VerifyingKey};
+use ml_dsa::{B32, B256, KeyGen, MlDsa65, Signature, SigningKey, VerifyingKey};
 use rand::CryptoRng;
 
 pub fn rand<L: ArraySize, R: CryptoRng + ?Sized>(rng: &mut R) -> Array<u8, L> {
@@ -12,7 +12,7 @@ pub fn rand<L: ArraySize, R: CryptoRng + ?Sized>(rng: &mut R) -> Array<u8, L> {
 fn criterion_benchmark(c: &mut Criterion) {
     let mut rng = rand::rng();
     let xi: B32 = rand(&mut rng);
-    let m: B32 = rand(&mut rng);
+    let m: B256 = rand(&mut rng);
     let ctx: B32 = rand(&mut rng);
 
     let kp = MlDsa65::key_gen_internal(&xi);

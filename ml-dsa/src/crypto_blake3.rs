@@ -27,7 +27,7 @@ impl Blake3State {
     pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Self::Absorbing(hasher) => {
-                hasher.update(input);
+                hasher.update_rayon(input);
             }
             Self::Squeezing(_) => unreachable!(),
         }

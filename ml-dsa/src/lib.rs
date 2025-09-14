@@ -95,7 +95,7 @@ use crate::util::B64;
 use core::fmt;
 
 pub use crate::param::{EncodedSignature, EncodedSigningKey, EncodedVerifyingKey, MlDsaParams};
-pub use crate::util::B32;
+pub use crate::util::{B32, B256};
 pub use signature::{self, Error, MultipartSigner, MultipartVerifier};
 
 /// An ML-DSA signature

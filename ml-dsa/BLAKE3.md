@@ -22,8 +22,6 @@ cargo test --lib crypto_blake3
 
 ## Key Gen
 
-### Single Keypair
-
 To generate a single keypair and see the timing with SHAKE:
 
 ```bash
@@ -36,16 +34,16 @@ To generate a single keypair and see the timing with BLAKE3:
 cargo test --test key_gen_analysis --features blake3 -- --nocapture
 ```
 
-### Benchmarking
+## Benchmarking
 
-To benchmark the key generation with SHAKE:
+To benchmark all operations with SHAKE:
 
 ```bash
-cargo bench --bench hash_comparison
+cargo bench --bench ml_dsa
 ```
 
-To benchmark the key generation with BLAKE3:
+To benchmark all operations with BLAKE3:
 
 ```bash
-cargo bench --bench hash_comparison --features blake3 
+cargo bench --bench ml_dsa --features blake3 
 ```
