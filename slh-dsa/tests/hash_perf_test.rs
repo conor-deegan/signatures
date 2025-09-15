@@ -1,6 +1,6 @@
-use std::time::Instant;
-use hmac::{Hmac, Mac, KeyInit};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Digest;
+use std::time::Instant;
 
 #[test]
 fn compare_raw_hash_performance() {
@@ -12,7 +12,7 @@ fn compare_raw_hash_performance() {
     let sizes = [64, 1024, 8192, 65536]; // 64B, 1KB, 8KB, 64KB
     for size in sizes {
         let msg = vec![42u8; size];
-        
+
         // BLAKE3
         let start = Instant::now();
         for _ in 0..iterations {
@@ -36,9 +36,18 @@ fn compare_raw_hash_performance() {
         println!("\nMessage size: {} bytes", size);
         println!("BLAKE3 time: {:?}", blake3_time);
         println!("SHA2 time: {:?}", sha2_time);
-        println!("SHA2 vs BLAKE3: {:.2}x", sha2_time.as_secs_f64() / blake3_time.as_secs_f64());
+        println!(
+            "SHA2 vs BLAKE3: {:.2}x",
+            sha2_time.as_secs_f64() / blake3_time.as_secs_f64()
+        );
         println!("Throughput:");
-        println!("BLAKE3: {:.2} MB/s", (size * iterations) as f64 / blake3_time.as_secs_f64() / 1_000_000.0);
-        println!("SHA2: {:.2} MB/s", (size * iterations) as f64 / sha2_time.as_secs_f64() / 1_000_000.0);
+        println!(
+            "BLAKE3: {:.2} MB/s",
+            (size * iterations) as f64 / blake3_time.as_secs_f64() / 1_000_000.0
+        );
+        println!(
+            "SHA2: {:.2} MB/s",
+            (size * iterations) as f64 / sha2_time.as_secs_f64() / 1_000_000.0
+        );
     }
 }

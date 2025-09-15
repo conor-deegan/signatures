@@ -47,3 +47,11 @@ To benchmark all operations with BLAKE3:
 ```bash
 cargo bench --bench ml_dsa --features blake3 
 ```
+
+### Hash specific benchmarks
+
+More granular benchmarks can be found in the `benches/hash_comparison.rs` file.
+
+```bash
+cargo bench --bench hash_comparison
+```

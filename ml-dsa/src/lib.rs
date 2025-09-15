@@ -33,9 +33,11 @@
 //! ```
 
 mod algebra;
-mod crypto;
-// CD: Added crypto_blake3 module
-mod crypto_blake3;
+/// SHAKE hash function implementation
+pub mod crypto;
+// CD: Adding crypto_blake3 module
+/// BLAKE3 hash function implementation
+pub mod crypto_blake3;
 mod encode;
 mod hint;
 mod ntt;

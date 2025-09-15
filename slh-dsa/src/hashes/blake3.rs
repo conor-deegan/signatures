@@ -9,15 +9,13 @@ use crate::{
     xmss::XmssParams,
 };
 use crate::{PkSeed, SkPrf, SkSeed};
+use crate::{
+    signature_encoding::SignatureLen, signing_key::SigningKeyLen, verifying_key::VerifyingKeyLen,
+};
 use const_oid::db::fips205;
+use hybrid_array::sizes::{U7856, U17088};
 use hybrid_array::{Array, ArraySize};
 use typenum::{Diff, Sum, U, U16, U30, U32, U34, U64};
-use hybrid_array::sizes::{U7856, U17088};
-use crate::{
-    signature_encoding::SignatureLen,
-    signing_key::SigningKeyLen,
-    verifying_key::VerifyingKeyLen,
-};
 
 /// Implementation of the component hash functions using BLAKE3 at Security Category 1
 ///
@@ -51,10 +49,10 @@ where
         key[..Self::N::USIZE].copy_from_slice(sk_prf.as_ref());
         let mut hasher = blake3::Hasher::new_keyed(&key);
         hasher.update(opt_rand.as_slice());
-        msg.iter()
-            .copied()
-            .flatten()
-            .for_each(|msg_part| { hasher.update(msg_part.as_ref()); () });
+        msg.iter().copied().flatten().for_each(|msg_part| {
+            hasher.update(msg_part.as_ref());
+            ()
+        });
         let output = hasher.finalize();
         Array::clone_from_slice(&output.as_bytes()[..Self::N::USIZE])
     }
@@ -69,10 +67,10 @@ where
         hasher.update(rand.as_slice());
         hasher.update(pk_seed.as_ref());
         hasher.update(pk_root.as_slice());
-        msg.iter()
-            .copied()
-            .flatten()
-            .for_each(|msg_part| { hasher.update(msg_part.as_ref()); () });
+        msg.iter().copied().flatten().for_each(|msg_part| {
+            hasher.update(msg_part.as_ref());
+            ()
+        });
         let mut result = Array::<u8, Self::M>::default();
         let mut xof = hasher.finalize_xof();
         xof.fill(&mut result);
@@ -106,7 +104,10 @@ where
         let mut hasher = blake3::Hasher::new_keyed(&key);
         hasher.update(zeroes.as_slice());
         hasher.update(adrs.compressed().as_slice());
-        m.iter().for_each(|x| { hasher.update(x.as_slice()); () });
+        m.iter().for_each(|x| {
+            hasher.update(x.as_slice());
+            ()
+        });
         let output = hasher.finalize();
         Array::clone_from_slice(&output.as_bytes()[..Self::N::USIZE])
     }
@@ -224,8 +225,8 @@ impl VerifyingKeyLen for Blake3_128f {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex_literal::hex;
     use core::prelude::v1::*;
+    use hex_literal::hex;
 
     #[test]
     fn quick_performance_test() {
@@ -274,16 +275,16 @@ mod tests {
     #[test]
     fn h_msg_blake3_128s() {
         h_msg::<Blake3_128s>(&[
-            94, 155, 145, 180, 158, 195, 232, 245, 101, 71, 151, 89, 18, 11, 172, 235,
-            254, 165, 13, 56, 25, 45, 30, 55, 107, 51, 51, 87, 242, 132
+            94, 155, 145, 180, 158, 195, 232, 245, 101, 71, 151, 89, 18, 11, 172, 235, 254, 165,
+            13, 56, 25, 45, 30, 55, 107, 51, 51, 87, 242, 132,
         ]);
     }
 
     #[test]
     fn h_msg_blake3_128f() {
         h_msg::<Blake3_128f>(&[
-            94, 155, 145, 180, 158, 195, 232, 245, 101, 71, 151, 89, 18, 11, 172, 235,
-            254, 165, 13, 56, 25, 45, 30, 55, 107, 51, 51, 87, 242, 132, 225, 64, 215, 106
+            94, 155, 145, 180, 158, 195, 232, 245, 101, 71, 151, 89, 18, 11, 172, 235, 254, 165,
+            13, 56, 25, 45, 30, 55, 107, 51, 51, 87, 242, 132, 225, 64, 215, 106,
         ]);
     }
 }

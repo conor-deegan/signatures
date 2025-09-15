@@ -1,6 +1,6 @@
-use std::time::Instant;
-use hmac::{Hmac, Mac, KeyInit};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Digest;
+use std::time::Instant;
 
 #[test]
 fn compare_core_operations() {
@@ -13,7 +13,7 @@ fn compare_core_operations() {
 
     // Test operation similar to prf_sk
     println!("\nTesting prf_sk-like operation (key + 3 small messages):");
-    
+
     // BLAKE3 version 1 (current)
     let start = Instant::now();
     for _ in 0..iterations {
@@ -56,12 +56,18 @@ fn compare_core_operations() {
     println!("SHA2-HMAC time: {:?}", sha2_time);
 
     println!("\nRelative performance:");
-    println!("Current vs Optimized BLAKE3: {:.2}x", blake3_v1_time.as_secs_f64() / blake3_v2_time.as_secs_f64());
-    println!("SHA2 vs Optimized BLAKE3: {:.2}x", sha2_time.as_secs_f64() / blake3_v2_time.as_secs_f64());
+    println!(
+        "Current vs Optimized BLAKE3: {:.2}x",
+        blake3_v1_time.as_secs_f64() / blake3_v2_time.as_secs_f64()
+    );
+    println!(
+        "SHA2 vs Optimized BLAKE3: {:.2}x",
+        sha2_time.as_secs_f64() / blake3_v2_time.as_secs_f64()
+    );
 
     // Test operation similar to h_msg (hash multiple messages)
     println!("\nTesting h_msg-like operation (hash multiple messages):");
-    
+
     // BLAKE3 version 1 (current)
     let start = Instant::now();
     for _ in 0..iterations {
@@ -111,6 +117,12 @@ fn compare_core_operations() {
     println!("SHA2 time: {:?}", sha2_time);
 
     println!("\nRelative performance:");
-    println!("Current vs Optimized BLAKE3: {:.2}x", blake3_v1_time.as_secs_f64() / blake3_v2_time.as_secs_f64());
-    println!("SHA2 vs Optimized BLAKE3: {:.2}x", sha2_time.as_secs_f64() / blake3_v2_time.as_secs_f64());
+    println!(
+        "Current vs Optimized BLAKE3: {:.2}x",
+        blake3_v1_time.as_secs_f64() / blake3_v2_time.as_secs_f64()
+    );
+    println!(
+        "SHA2 vs Optimized BLAKE3: {:.2}x",
+        sha2_time.as_secs_f64() / blake3_v2_time.as_secs_f64()
+    );
 }

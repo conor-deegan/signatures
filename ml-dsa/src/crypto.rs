@@ -11,8 +11,11 @@ static PRINT_ONCE: Once = Once::new();
 
 // CD: Added Debug to allow for logging
 #[derive(Debug)]
+/// SHAKE hash state
 pub enum ShakeState<Shake: ExtendableOutput> {
+    /// Absorbing state
     Absorbing(Shake),
+    /// Squeezing state
     Squeezing(Shake::Reader),
 }
 
@@ -28,6 +31,7 @@ impl<Shake: ExtendableOutput + Default> Default for ShakeState<Shake> {
 
 impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
     #[allow(dead_code)] // removing compiler warnings given feature flags
+    /// Absorb input into the hash state
     pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Self::Absorbing(sponge) => sponge.update(input),
@@ -38,6 +42,7 @@ impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
     }
 
     #[allow(dead_code)] // removing compiler warnings given feature flags
+    /// Squeeze output from the hash state
     pub fn squeeze(&mut self, output: &mut [u8]) -> &mut Self {
         match self {
             Self::Absorbing(sponge) => {
@@ -55,6 +60,7 @@ impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
     }
 
     #[allow(dead_code)] // removing compiler warnings given feature flags
+    /// Squeeze output from the hash state
     pub fn squeeze_new<N: ArraySize>(&mut self) -> Array<u8, N> {
         let mut v = Array::default();
         self.squeeze(&mut v);
@@ -63,8 +69,10 @@ impl<Shake: ExtendableOutput + Default + Clone> ShakeState<Shake> {
 }
 
 #[allow(dead_code)] // removing compiler warnings given feature flags
+/// SHAKE-128 hash state
 pub type G = ShakeState<Shake128>;
 #[allow(dead_code)] // removing compiler warnings given feature flags
+/// SHAKE-256 hash state
 pub type H = ShakeState<Shake256>;
 
 #[cfg(test)]

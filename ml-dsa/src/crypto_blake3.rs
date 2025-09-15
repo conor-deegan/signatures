@@ -1,15 +1,18 @@
 // CD: Added crypto_blake3 module
-use hybrid_array::Array;
 use crate::module_lattice::encode::ArraySize;
 use blake3::{Hasher, OutputReader};
+use hybrid_array::Array;
 use std::sync::Once;
 
 #[allow(dead_code)]
 static PRINT_ONCE: Once = Once::new();
 
 #[derive(Debug)]
+/// BLAKE3 hash state
 pub enum Blake3State {
+    /// Absorbing state
     Absorbing(Hasher),
+    /// Squeezing state
     Squeezing(OutputReader),
 }
 
@@ -24,6 +27,7 @@ impl Default for Blake3State {
 
 impl Blake3State {
     #[allow(dead_code)] // removing compiler warnings given feature flags
+    /// Absorb input into the hash state
     pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Self::Absorbing(hasher) => {
@@ -34,6 +38,7 @@ impl Blake3State {
         self
     }
 
+    /// Squeeze output from the hash state
     pub fn squeeze(&mut self, output: &mut [u8]) -> &mut Self {
         match self {
             Self::Absorbing(hasher) => {
@@ -49,6 +54,7 @@ impl Blake3State {
     }
 
     #[allow(dead_code)] // removing compiler warnings given feature flags
+    /// Squeeze output from the hash state
     pub fn squeeze_new<N: ArraySize>(&mut self) -> Array<u8, N> {
         let mut v = Array::default();
         self.squeeze(&mut v);
@@ -57,8 +63,10 @@ impl Blake3State {
 }
 
 #[allow(dead_code)] // removing compiler warnings given feature flags
+/// BLAKE3 hash state for G function
 pub type G = Blake3State;
 #[allow(dead_code)] // removing compiler warnings given feature flags
+/// BLAKE3 hash state for H function
 pub type H = Blake3State;
 
 #[cfg(test)]
