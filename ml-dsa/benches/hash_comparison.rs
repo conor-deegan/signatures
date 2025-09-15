@@ -59,7 +59,7 @@ fn bench_raw_hashes(c: &mut Criterion) {
             |b, input| {
                 b.iter(|| {
                     let mut hasher = Blake3Hasher::new();
-                    hasher.update_rayon(input); // Using rayon for parallel processing
+                    hasher.update_rayon(input);
                     let mut output = [0u8; 32];
                     let mut reader = hasher.finalize_xof();
                     reader.fill(&mut output);

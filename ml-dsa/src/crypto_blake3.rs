@@ -31,7 +31,13 @@ impl Blake3State {
     pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Self::Absorbing(hasher) => {
-                hasher.update_rayon(input);
+                // Only use parallel processing for larger inputs
+                if input.len() > 1024 {
+                    // or some other threshold
+                    hasher.update_rayon(input);
+                } else {
+                    hasher.update(input);
+                }
             }
             Self::Squeezing(_) => unreachable!(),
         }

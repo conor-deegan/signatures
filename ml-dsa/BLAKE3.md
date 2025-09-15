@@ -50,8 +50,22 @@ cargo bench --bench ml_dsa --features blake3
 
 ### Hash specific benchmarks
 
-More granular benchmarks can be found in the `benches/hash_comparison.rs` file.
+Found in the `benches/hash_comparison.rs` file.
 
 ```bash
 cargo bench --bench hash_comparison
 ```
+
+From this it's clear that BLAKE3 is faster than SHAKE for all input sizes.
+
+### State specific benchmarks
+
+Found in the `benches/state_comparison.rs` file.
+
+The point of these benchmarks is to compare the performance of the hash function when used in a similar way to the ML-DSA implementation.
+
+```bash
+cargo bench --bench state_comparison
+```
+
+Now we finally get a sense of what is going on. When there are multiple absorbs and/or squeezes, the difference is less pronounced and when we get up to the scale of the ML-DSA key generation, BLAKE3 ends up being slower than SHAKE. BLAKE3 pays a bigger penalty when used in the current ML-DSA pattern.
