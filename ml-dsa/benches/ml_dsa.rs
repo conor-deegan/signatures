@@ -10,10 +10,19 @@ pub fn rand<L: ArraySize, R: CryptoRng + ?Sized>(rng: &mut R) -> Array<u8, L> {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let mut rng = rand::rng();
-    let xi: B32 = rand(&mut rng);
-    let m: B256 = rand(&mut rng);
-    let ctx: B32 = rand(&mut rng);
+    // CD: Removed RNG to make benchmarks deterministic
+    // let mut rng = rand::rng();
+    // let xi: B32 = rand(&mut rng);
+    // let m: B256 = rand(&mut rng);
+    // let ctx: B32 = rand(&mut rng);
+
+    // ----- Fixed, deterministic inputs (no RNG) -----
+    let mut xi: B32 = Array::default();
+    xi.as_mut_slice().fill(0x11);
+    let mut m: B256 = Array::default();
+    m.as_mut_slice().fill(0x22);
+    let mut ctx: B32 = Array::default();
+    ctx.as_mut_slice().fill(0x33);
 
     let kp = MlDsa65::key_gen_internal(&xi);
     let sk = kp.signing_key();

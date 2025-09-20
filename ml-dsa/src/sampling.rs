@@ -6,10 +6,19 @@ use crate::algebra::{
     BaseField, Elem, Field, Int, NttMatrix, NttPolynomial, NttVector, Polynomial, Vector,
 };
 // CD: Added feature flag to allow for different hash functions
-#[cfg(all(feature = "hash-shake", not(feature = "hash-blake3")))]
+#[cfg(all(
+    feature = "hash-shake",
+    not(feature = "hash-blake3-niave"),
+    not(feature = "hash-blake3-optimized"),
+    not(feature = "hash-aes")
+))]
 use crate::crypto::{G, H};
-#[cfg(feature = "hash-blake3")]
-use crate::crypto_blake3::{G, H};
+#[cfg(feature = "hash-aes")]
+use crate::crypto_aes::{G, H};
+#[cfg(feature = "hash-blake3-niave")]
+use crate::crypto_blake3_niave::{G, H};
+#[cfg(feature = "hash-blake3-optimized")]
+use crate::crypto_blake3_optimized::{G, H};
 use crate::param::{Eta, MaskSamplingSize};
 
 // Algorithm 13 BytesToBits

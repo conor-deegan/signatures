@@ -19,7 +19,7 @@ pub enum Blake3State {
 impl Default for Blake3State {
     fn default() -> Self {
         PRINT_ONCE.call_once(|| {
-            println!("\n ⍆ Using BLAKE3 hash function\n");
+            println!("\n ⍆ Using BLAKE3 niave hash function\n");
         });
         Self::Absorbing(Hasher::new())
     }

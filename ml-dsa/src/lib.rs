@@ -35,9 +35,13 @@
 mod algebra;
 /// SHAKE hash function implementation
 pub mod crypto;
+/// AES-based hash function implementation
+pub mod crypto_aes;
 // CD: Adding crypto_blake3 module
-/// BLAKE3 hash function implementation
-pub mod crypto_blake3;
+/// Niave BLAKE3 hash function implementation
+pub mod crypto_blake3_niave;
+/// Optimized BLAKE3 hash function implementation
+pub mod crypto_blake3_optimized;
 mod encode;
 mod hint;
 mod ntt;
@@ -85,10 +89,19 @@ use pkcs8::{
 
 use crate::algebra::{AlgebraExt, Elem, NttMatrix, NttVector, Truncate, Vector};
 // CD: Added feature flag to allow for different hash functions
-#[cfg(all(feature = "hash-shake", not(feature = "hash-blake3")))]
+#[cfg(all(
+    feature = "hash-shake",
+    not(feature = "hash-blake3-niave"),
+    not(feature = "hash-blake3-optimized"),
+    not(feature = "hash-aes")
+))]
 use crate::crypto::H;
-#[cfg(feature = "hash-blake3")]
-use crate::crypto_blake3::H;
+#[cfg(feature = "hash-aes")]
+use crate::crypto_aes::H;
+#[cfg(feature = "hash-blake3-niave")]
+use crate::crypto_blake3_niave::H;
+#[cfg(feature = "hash-blake3-optimized")]
+use crate::crypto_blake3_optimized::H;
 use crate::hint::Hint;
 use crate::ntt::{Ntt, NttInverse};
 use crate::param::{ParameterSet, QMinus1, SamplingSize, SpecQ};
