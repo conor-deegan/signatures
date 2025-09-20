@@ -28,7 +28,7 @@ impl Default for Blake3State {
 impl Blake3State {
     #[allow(dead_code)] // removing compiler warnings given feature flags
     /// Absorb input into the hash state
-    pub fn absorb(mut self, input: &[u8]) -> Self {
+    #[must_use] pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Self::Absorbing(hasher) => {
                 // Only use parallel processing for larger inputs

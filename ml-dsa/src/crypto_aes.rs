@@ -72,7 +72,7 @@ fn current_params() -> AesParams {
 }
 
 /// Fetch the active AES parameters.
-pub fn get_aes_params() -> AesParams {
+#[must_use] pub fn get_aes_params() -> AesParams {
     current_params()
 }
 
@@ -158,7 +158,7 @@ impl Default for AesState {
 impl AesState {
     #[allow(dead_code)]
     /// Absorb input into the hash state.
-    pub fn absorb(mut self, input: &[u8]) -> Self {
+    #[must_use] pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             AesState::Absorbing { hasher, .. } => {
                 hasher.update(input);

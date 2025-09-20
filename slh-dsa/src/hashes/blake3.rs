@@ -51,7 +51,7 @@ where
         hasher.update(opt_rand.as_slice());
         msg.iter().copied().flatten().for_each(|msg_part| {
             hasher.update(msg_part.as_ref());
-            ()
+            ();
         });
         let output = hasher.finalize();
         Array::clone_from_slice(&output.as_bytes()[..Self::N::USIZE])
@@ -69,7 +69,7 @@ where
         hasher.update(pk_root.as_slice());
         msg.iter().copied().flatten().for_each(|msg_part| {
             hasher.update(msg_part.as_ref());
-            ()
+            ();
         });
         let mut result = Array::<u8, Self::M>::default();
         let mut xof = hasher.finalize_xof();
@@ -106,7 +106,7 @@ where
         hasher.update(adrs.compressed().as_slice());
         m.iter().for_each(|x| {
             hasher.update(x.as_slice());
-            ()
+            ();
         });
         let output = hasher.finalize();
         Array::clone_from_slice(&output.as_bytes()[..Self::N::USIZE])
