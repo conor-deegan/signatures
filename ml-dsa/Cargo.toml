@@ -25,15 +25,17 @@ exclude = [
 ]
 
 [features]
-default = ["shake"]
-# Hash function selection
+default = ["hash-shake"]  # Default to SHAKE implementation
+
+# Hash function selection (mutually exclusive)
 hash-shake = []  # Use SHAKE hash function
-hash-blake3-niave = []  # Use BLAKE3 niave implementation hash function
-hash-blake3-optimized = []  # Use BLAKE3 optimized implementation hash function
+hash-blake3-naive = []  # Use BLAKE3 naive implementation
+hash-blake3-optimized = []  # Use BLAKE3 optimized implementation
 hash-aes = []  # Use AES hash function
-# Helper bundles
+
+# Helper bundles that include common dependencies
 shake = ["rand_core", "alloc", "pkcs8", "hash-shake"]
-blake3-niave = ["rand_core", "alloc", "pkcs8", "hash-blake3-niave"]
+blake3-naive = ["rand_core", "alloc", "pkcs8", "hash-blake3-naive"]
 blake3-optimized = ["rand_core", "alloc", "pkcs8", "hash-blake3-optimized"]
 aes = ["rand_core", "alloc", "pkcs8", "hash-aes"]
 # Other features
@@ -51,10 +53,10 @@ signature = { version = "3.0.0-rc.2", default-features = false }
 zeroize = { version = "1.8.1", optional = true, default-features = false }
 const-oid = { version = "0.10", features = ["db"], optional = true }
 pkcs8 = { version = "0.11.0-rc.6", default-features = false, optional = true }
-# make sure rayon is enabled
-blake3 = {version = "1.8.2", features = ["rayon"]}
-aes = "0.8.4"
-ctr = "0.9.2"
+# Hash function implementations
+blake3 = { version = "1.8.2", features = ["rayon"] }
+aes = { version = "0.8.4" }
+ctr = { version = "0.9.2" }
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -68,4 +70,8 @@ serde_json = "1.0.132"
 
 [[bench]]
 name = "ml_dsa"
+harness = false
+
+[[bench]]
+name = "ml_dsa_warm_v_cold"
 harness = false

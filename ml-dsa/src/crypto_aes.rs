@@ -2,7 +2,6 @@ use aes::{
     Aes128,
     cipher::{KeyIvInit, StreamCipher},
 };
-use blake3::Hasher;
 use ctr::Ctr64BE;
 use hybrid_array::Array;
 use std::sync::Once;
@@ -72,7 +71,8 @@ fn current_params() -> AesParams {
 }
 
 /// Fetch the active AES parameters.
-#[must_use] pub fn get_aes_params() -> AesParams {
+#[must_use]
+pub fn get_aes_params() -> AesParams {
     current_params()
 }
 
@@ -120,10 +120,10 @@ fn align16(n: usize) -> usize {
 
 /// AES-CTR backed extendable-output state
 pub enum AesState {
-    /// Accumulates input using a streaming BLAKE3 hasher until squeezing begins.
+    /// Accumulates input until squeezing begins.
     Absorbing {
-        /// BLAKE3 hasher providing fast, incremental key derivation.
-        hasher: Hasher,
+        /// Buffer for input data
+        buffer: Vec<u8>,
         /// Active tuning parameters.
         params: AesParams,
     },
@@ -149,7 +149,7 @@ impl Default for AesState {
         });
         let params = current_params();
         AesState::Absorbing {
-            hasher: Hasher::new(),
+            buffer: Vec::with_capacity(1024),
             params,
         }
     }
@@ -158,10 +158,11 @@ impl Default for AesState {
 impl AesState {
     #[allow(dead_code)]
     /// Absorb input into the hash state.
-    #[must_use] pub fn absorb(mut self, input: &[u8]) -> Self {
+    #[must_use]
+    pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
-            AesState::Absorbing { hasher, .. } => {
-                hasher.update(input);
+            AesState::Absorbing { buffer, .. } => {
+                buffer.extend_from_slice(input);
             }
             AesState::Squeezing { .. } => unreachable!(),
         }
@@ -169,11 +170,11 @@ impl AesState {
     }
 
     fn ensure_cipher(&mut self) {
-        if let AesState::Absorbing { hasher, params } = self {
+        if let AesState::Absorbing { buffer, params } = self {
             use core::mem;
 
-            let hasher = mem::replace(hasher, Hasher::new());
-            let (key, nonce) = derive_key_nonce(hasher);
+            let buffer = mem::take(buffer);
+            let (key, nonce) = derive_key_nonce(&buffer);
 
             let mut cipher = AesCtr::new(&key.into(), &nonce.into());
             let mut cache = vec![0u8; params.cache_bytes];
@@ -245,12 +246,30 @@ impl AesState {
     }
 }
 
-fn derive_key_nonce(hasher: Hasher) -> ([u8; 16], [u8; 16]) {
-    let mut reader = hasher.finalize_xof();
+fn derive_key_nonce(buffer: &[u8]) -> ([u8; 16], [u8; 16]) {
     let mut key = [0u8; 16];
     let mut nonce = [0u8; 16];
-    reader.fill(&mut key);
-    reader.fill(&mut nonce);
+
+    // Simple key derivation from buffer
+    for (i, chunk) in buffer.chunks(16).enumerate() {
+        if i == 0 {
+            for (k, &b) in key
+                .iter_mut()
+                .zip(chunk.iter().chain(std::iter::repeat(&0)))
+            {
+                *k ^= b;
+            }
+        } else if i == 1 {
+            for (n, &b) in nonce
+                .iter_mut()
+                .zip(chunk.iter().chain(std::iter::repeat(&0)))
+            {
+                *n ^= b;
+            }
+        } else {
+            break;
+        }
+    }
     (key, nonce)
 }
 
