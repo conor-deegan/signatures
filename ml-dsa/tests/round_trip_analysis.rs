@@ -1,5 +1,5 @@
 // CD: adding a round trip analysis
-use hybrid_array::{Array, typenum::U4096};
+use hybrid_array::Array;
 use ml_dsa::*;
 use std::time::Instant;
 
@@ -23,7 +23,8 @@ fn analyze_key_gen_internal() {
     // signing
     let sign_start = Instant::now();
     // make message of lenght N where N can be bigger than Array:default() allows
-    let msg: Array<u8, U4096> = Array::default();
+    // let msg: Array<u8, U4096> = Array::default();
+    let msg = vec![0x22u8; 4096 * 1024 + 1024]; // 4097 KiB to ensure Rayon parallel processing
     let mut ctx: B32 = Array::default();
     ctx.as_mut_slice().fill(0x33);
     let sig = sk.sign_deterministic(&msg, &ctx).unwrap();

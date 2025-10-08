@@ -7,74 +7,75 @@ use std::sync::Once;
 #[allow(dead_code)]
 static PRINT_ONCE: Once = Once::new();
 
-// Cache for holding hash output
-const CACHE_BYTES: usize = 16_384; // multiple of 32;
-const PARALLEL_THRESHOLD: usize = 32 * 1024; // 32 KiB;
-const INITIAL_FILL: usize = 512; // first pull after finalize_xof(), must be multiple of 32
-const MIN_REFILL: usize = 512; // minimum on later refills, must be multiple of 32
-#[inline]
-fn align32(n: usize) -> usize {
-    (n + 31) & !31
+// Heuristics (conservative and general)
+const TINY_SQUEEZE_MAX: usize = 128; // tiny requests threshold
+const TINY_PREFETCH: usize = 1024; // small cache size (fits L1 nicely)
+const PAR_RAYON_BYTES: usize = 128 * 1024;
+
+#[derive(Debug)]
+/// Squeeze mode
+pub enum SqueezeMode {
+    /// Stream directly: reader.fill(out) with no extra buffering
+    Direct {
+        /// Reader
+        reader: OutputReader,
+        /// Count of recent tiny squeezes
+        tiny_hits: u32,
+        /// Small inline cache, allocated lazily
+        cache: Option<[u8; TINY_PREFETCH]>,
+        /// Read pointer into cache
+        off: usize,
+        /// Valid bytes in cache
+        len: usize,
+    },
 }
 
 #[derive(Debug)]
 /// BLAKE3 hash state
 pub enum Blake3State {
-    // Buffer inputs; do not touch the hasher until the first squeeze.
     /// Absorbing state
     Absorbing {
         /// Hasher
         hasher: Hasher,
-        /// Hash Buffer
+        /// Buffer
         buf: Vec<u8>,
     },
-    // After first squeeze, keep a single OutputReader and a local cache.
     /// Squeezing state
-    Squeezing {
-        /// `OutputReader`
-        reader: OutputReader,
-        /// Cache
-        cache: Box<[u8; CACHE_BYTES]>,
-        /// Next unread index in cache
-        off: usize,
-        /// Bytes currently valid in cache
-        len: usize,
-    },
+    Squeezing(SqueezeMode),
 }
 
 impl Default for Blake3State {
     fn default() -> Self {
-        PRINT_ONCE.call_once(|| {
-            println!("\n ⍆ Using BLAKE3 optimized hash function\n");
-        });
+        PRINT_ONCE.call_once(|| println!("\n ⍆ Using BLAKE3 optimized hash function\n"));
         Blake3State::Absorbing {
             hasher: Hasher::new(),
-            buf: Vec::with_capacity(128),
+            buf: Vec::with_capacity(1024),
         }
     }
 }
 
 impl Blake3State {
-    #[allow(dead_code)] // removing compiler warnings given feature flags
     /// Absorb input into the hash state
-    #[must_use] pub fn absorb(mut self, input: &[u8]) -> Self {
+    #[must_use]
+    pub fn absorb(mut self, input: &[u8]) -> Self {
         match &mut self {
             Blake3State::Absorbing { hasher, buf } => {
-                if input.len() >= PARALLEL_THRESHOLD {
-                    println!("Using parallel absorb");
+                let total = buf.len() + input.len();
+                if total >= PAR_RAYON_BYTES {
                     if !buf.is_empty() {
                         hasher.update(buf);
                         buf.clear();
                     }
-                    // Large message → parallel absorb (requires blake3 with rayon enabled)
                     hasher.update_rayon(input);
                 } else {
-                    // println!("Using sequential absorb");
-                    // Small message → just buffer; we hash once at first squeeze()
-                    buf.extend_from_slice(input);
+                    if buf.is_empty() && input.len() >= 2 * 1024 {
+                        hasher.update(input);
+                    } else {
+                        buf.extend_from_slice(input);
+                    }
                 }
             }
-            Blake3State::Squeezing { .. } => unreachable!(), // absorb-after-squeeze not allowed
+            Blake3State::Squeezing(_) => unreachable!("absorb after squeeze"),
         }
         self
     }
@@ -82,72 +83,92 @@ impl Blake3State {
     #[inline]
     fn ensure_reader(&mut self) {
         if let Blake3State::Absorbing { hasher, buf } = self {
-            // println!("Updating hasher");
-            // Hash all buffered input once, then finalize into an XOF reader.
-            hasher.update(buf);
-            buf.clear();
-            let mut reader = hasher.finalize_xof();
-
-            // Prime the cache with a large fill to avoid tiny reads.
-            // println!("Priming cache");
-            let mut cache = Box::new([0u8; CACHE_BYTES]);
-            let first = INITIAL_FILL.min(CACHE_BYTES);
-            reader.fill(&mut cache[..first]);
-
-            // println!("Switching to squeezing state");
-            *self = Blake3State::Squeezing {
+            if !buf.is_empty() {
+                if buf.len() >= PAR_RAYON_BYTES {
+                    hasher.update_rayon(buf);
+                } else {
+                    hasher.update(buf);
+                }
+                buf.clear();
+            }
+            let reader = hasher.finalize_xof();
+            *self = Blake3State::Squeezing(SqueezeMode::Direct {
                 reader,
-                cache,
+                tiny_hits: 0,
+                cache: None,
                 off: 0,
-                len: first,
-            };
+                len: 0,
+            });
         }
+    }
+
+    #[inline]
+    fn tiny_prefetch(
+        reader: &mut OutputReader,
+        cache: &mut [u8; TINY_PREFETCH],
+        off: &mut usize,
+        len: &mut usize,
+    ) {
+        // Refill the tiny cache with up to TINY_PREFETCH bytes
+        reader.fill(&mut cache[..]);
+        *off = 0;
+        *len = TINY_PREFETCH;
     }
 
     /// Squeeze output from the hash state
     pub fn squeeze(&mut self, out: &mut [u8]) -> &mut Self {
-        // println!("Squeezing");
-        // On first squeeze, finalize and switch to streaming mode.
         self.ensure_reader();
 
-        // Now we’re guaranteed to be in Squeezing.
-        if let Blake3State::Squeezing {
+        if let Blake3State::Squeezing(SqueezeMode::Direct {
             reader,
+            tiny_hits,
             cache,
             off,
             len,
-        } = self
+        }) = self
         {
-            let mut written = 0;
-            while written < out.len() {
-                // Refill cache if empty.
-                if *off == *len {
-                    // println!("Refilling cache");
-                    let need = out.len() - written; // bytes caller still needs
-                    let want = align32(core::cmp::max(need, MIN_REFILL)); // >=512 and multiple of 32
-                    let filln = core::cmp::min(want, CACHE_BYTES); // cap to cache size
-                    reader.fill(&mut cache[..filln]);
-                    *off = 0;
-                    *len = filln;
-                } else {
-                    // println!("Serving from cache");
-                }
-                let avail = *len - *off;
-                let need = out.len() - written;
-                let take = if avail < need { avail } else { need };
+            // Fast path: 1) tiny, 2) general direct fill
+            if out.len() <= TINY_SQUEEZE_MAX {
+                // If we've seen at least one previous tiny squeeze, enable small cache
+                if *tiny_hits > 0 {
+                    // allocate small cache lazily
+                    if cache.is_none() {
+                        *cache = Some([0u8; TINY_PREFETCH]);
+                        *off = 0;
+                        *len = 0;
+                    }
 
-                // Serve from cache.
-                out[written..written + take].copy_from_slice(&cache[*off..*off + take]);
-                *off += take;
-                written += take;
+                    let c = cache.as_mut().unwrap();
+                    // top up cache if needed
+                    if *off + out.len() > *len {
+                        Self::tiny_prefetch(reader, c, off, len);
+                    }
+                    // serve from cache
+                    out.copy_from_slice(&c[*off..*off + out.len()]);
+                    *off += out.len();
+                } else {
+                    // First tiny: just fill directly; if we see more, we’ll turn cache on
+                    reader.fill(out);
+                    *tiny_hits = 1;
+                }
+                return self;
             }
+
+            // Not a tiny squeeze: just stream directly in one go.
+            // This avoids any cache copy cost and is optimal for 4 KiB+ and most mid sizes.
+            reader.fill(out);
+            // Reset tiny pattern tracking because a large request arrived
+            *tiny_hits = 0;
+            *off = 0;
+            *len = 0;
+            // keep cache allocated if it exists; no harm, can be reused
         } else {
             unreachable!();
         }
         self
     }
 
-    #[allow(dead_code)] // removing compiler warnings given feature flags
+    #[allow(dead_code)]
     /// Squeeze output from the hash state
     pub fn squeeze_new<N: ArraySize>(&mut self) -> Array<u8, N> {
         let mut v = Array::default();

@@ -89,17 +89,27 @@ use pkcs8::{
 
 use crate::algebra::{AlgebraExt, Elem, NttMatrix, NttVector, Truncate, Vector};
 // CD: Added feature flag to allow for different hash functions
-#[cfg(all(
-    feature = "hash-shake",
-    not(feature = "hash-blake3-niave"),
-    not(feature = "hash-blake3-optimized"),
-    not(feature = "hash-aes")
-))]
+// Ensure only one hash implementation is selected
+#[cfg(all(feature = "hash-shake", feature = "hash-blake3-naive"))]
+compile_error!("Cannot enable both SHAKE and BLAKE3 naive implementations");
+#[cfg(all(feature = "hash-shake", feature = "hash-blake3-optimized"))]
+compile_error!("Cannot enable both SHAKE and BLAKE3 optimized implementations");
+#[cfg(all(feature = "hash-shake", feature = "hash-aes"))]
+compile_error!("Cannot enable both SHAKE and AES implementations");
+#[cfg(all(feature = "hash-blake3-naive", feature = "hash-blake3-optimized"))]
+compile_error!("Cannot enable both BLAKE3 naive and optimized implementations");
+#[cfg(all(feature = "hash-blake3-naive", feature = "hash-aes"))]
+compile_error!("Cannot enable both BLAKE3 naive and AES implementations");
+#[cfg(all(feature = "hash-blake3-optimized", feature = "hash-aes"))]
+compile_error!("Cannot enable both BLAKE3 optimized and AES implementations");
+
+// Import the selected hash implementation
+#[cfg(feature = "hash-shake")]
 use crate::crypto::H;
 #[cfg(feature = "hash-aes")]
 use crate::crypto_aes::H;
-#[cfg(feature = "hash-blake3-niave")]
-use crate::crypto_blake3_niave::H;
+#[cfg(feature = "hash-blake3-naive")]
+use crate::crypto_blake3_naive::H;
 #[cfg(feature = "hash-blake3-optimized")]
 use crate::crypto_blake3_optimized::H;
 use crate::hint::Hint;
@@ -109,7 +119,7 @@ use crate::sampling::{expand_a, expand_mask, expand_s, sample_in_ball};
 use core::fmt;
 
 pub use crate::param::{EncodedSignature, EncodedSigningKey, EncodedVerifyingKey, MlDsaParams};
-pub use crate::util::{B32, B64, B256};
+pub use crate::util::{B32, B64, B256, B4096};
 pub use signature::{self, Error, MultipartSigner, MultipartVerifier};
 
 /// An ML-DSA signature

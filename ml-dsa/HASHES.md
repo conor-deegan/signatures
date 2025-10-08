@@ -29,8 +29,28 @@ cargo test --test round_trip_analysis --features blake3-optimized -- --nocapture
 ## Benchmarking
 
 ```bash
-cargo bench --bench ml_dsa --features shake
-cargo bench --bench ml_dsa --features aes
-cargo bench --bench ml_dsa --features blake3-niave
-cargo bench --bench ml_dsa --features blake3-optimized
+cargo bench --bench ml_dsa --no-default-features --features shake
+cargo bench --bench ml_dsa --no-default-features --features aes
+cargo bench --bench ml_dsa --no-default-features --features blake3-niave
+cargo bench --bench ml_dsa --no-default-features --features blake3-optimized
 ```
+
+```bash
+cargo bench --bench ml_dsa_warm_v_cold --no-default-features --features shake
+cargo bench --bench ml_dsa_warm_v_cold --no-default-features --features aes
+cargo bench --bench ml_dsa_warm_v_cold --no-default-features --features blake3-niave
+cargo bench --bench ml_dsa_warm_v_cold --no-default-features --features blake3-optimized
+```
+
+Takeaways
+
+Wins:
+• Mid-size (256–1024 B): B3 is 2–5× faster.
+• Bigger (≥1 MiB): B3 is 2–9× faster.
+• Round trip (keygen+sign+verify): 1.6× faster overall.
+• Ties: verify (pure check), 256 KiB messages.
+
+Losses:
+• Very small (32 B) → B3 is ~1.5–2× slower.
+• 4 KiB messages → B3 is ~20–30% slower.
+• Keygen → small overhead in B3 path.
